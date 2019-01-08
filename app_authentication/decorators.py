@@ -1,22 +1,17 @@
-from django.conf import settings
-from django.http import HttpResponseRedirect
+from django.contrib.admin.views.decorators import user_passes_test
+from django.contrib.auth import REDIRECT_FIELD_NAME
 
 
-def secure_required(func):
+def superuser_required(view_func=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url='login'):
     """
-    Decorator makes sure URL is accessed over https.
-    Use with `SecureRequiredMiddleware` to ensure only decorated urls are
-    accessed via https
+    Decorator for views that checks that the user is logged in and is a
+    superuser, redirecting to the login page if necessary.
     """
-
-    def wrap(request, *args, **kwargs):
-        request.META["CSRF_COOKIE_USED"] = True
-        request.secure_required = True
-        if not request.is_secure():
-            if getattr(settings, 'HTTPS_SUPPORT', False):
-                request_url = request.build_absolute_uri(request.get_full_path())
-                secure_url = request_url.replace('http://', 'https://')
-                return HttpResponseRedirect(secure_url)
-        return func(request, *args, **kwargs)
-
-    return wrap
+    actual_decorator = user_passes_test(
+        lambda u: u.is_active and u.is_superuser,
+        login_url=login_url,
+        redirect_field_name=redirect_field_name
+    )
+    if view_func:
+        return actual_decorator(view_func)
+    return actual_decorator

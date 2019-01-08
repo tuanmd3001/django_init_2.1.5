@@ -2,9 +2,8 @@
 from django.urls import path
 
 # New report
-from app_management import views
-from django.contrib.auth.decorators import login_required
+from app_management.views import dashboard
 
 urlpatterns = [
-    path('', login_required(views.home), name='config_dashboard')
+    path('', dashboard.DashBoard.as_view(), name='config_dashboard')
 ]

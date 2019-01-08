@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'django_bootstrap_breadcrumbs',
     'app_authentication',
     'app_management',
+    'app_client',
 ]
 
 MIDDLEWARE = [
@@ -46,11 +47,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(PROJECT_ROOT, '../app_client/templates').replace('\\', '/'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -103,5 +106,8 @@ USE_TZ = True
 ROOT_URLCONF = 'main.urls'
 STATIC_URL = '/static/'
 LOGIN_URL = '/login/'
+
+
+LOGIN_MULTI_LOCATION = False
 
 from .target import *

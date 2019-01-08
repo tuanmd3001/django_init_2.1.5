@@ -1,8 +1,32 @@
+from django.contrib.auth import REDIRECT_FIELD_NAME, logout
+from django.contrib.auth.views import redirect_to_login
+from django.shortcuts import resolve_url
 from django.views.generic import TemplateView
 from django.conf import settings
+from django.core.cache import cache
+from app_authentication.config import USER_SESSION_CACHE_KEY
 
 
 class BaseView(TemplateView):
+    def go_to_login(self):
+        path = self.request.get_full_path()
+        resolved_login_url = resolve_url('login' or settings.LOGIN_URL)
+        return redirect_to_login(path, resolved_login_url, REDIRECT_FIELD_NAME)
+
+    def validate_login_session(self):
+        if self.request.user and str(self.request.user) != 'AnonymousUser':
+            session_key = cache.get(USER_SESSION_CACHE_KEY % self.request.user.id, self.request.session.session_key)
+            if session_key != self.request.session.session_key:
+                logout(self.request)
+                return False
+        return True
+
+    def dispatch(self, *args, **kwargs):
+        dispatch = super(BaseView, self).dispatch(*args, **kwargs)
+        if not settings.LOGIN_MULTI_LOCATION and not self.validate_login_session():
+            return self.go_to_login()
+        return dispatch
+
     def _handle_http_request(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
