@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
+from collections import OrderedDict
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +34,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_bootstrap_breadcrumbs',
+    'constance',
+    'app_themes',
     'app_authentication',
     'app_management',
     'app_client',
@@ -52,12 +55,11 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            os.path.join(PROJECT_ROOT, '../app_client/templates').replace('\\', '/'),
-        ],
+        'DIRS': [os.path.join(BASE_DIR, 'app_themes', 'themes'),],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'constance.context_processors.config',
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
@@ -105,11 +107,32 @@ USE_TZ = True
 
 
 ROOT_URLCONF = 'main.urls'
-STATIC_URL = '/static/'
+STATIC_URL = '/s1/'
 LOGIN_URL = '/login/'
 AUTH_USER_MODEL = 'app_authentication.User'
-
+STATICFILES_DIRS = [
+    BASE_DIR,
+    os.path.join(BASE_DIR, 'app_themes', 'themes'),
+]
 
 LOGIN_MULTI_LOCATION = False
 
+# define type of config
+CONSTANCE_ADDITIONAL_FIELDS = {
+    'image_field': ['django.forms.ImageField', {}]
+}
+# define config (with order)
+CONSTANCE_CONFIG = OrderedDict([
+    ('SITE_NAME', ('My Title', 'Website title')),
+    ('SITE_DESCRIPTION', ('', 'Website description')),
+    ('THEME', ('ace', 'Website theme')),
+    ('THEME_TEMPLATE_DIR', ('templates', 'Theme template directory')),
+    ('THEME_ASSETS_DIR', ('static', 'Theme template directory')),
+])
+
+# group config
+CONSTANCE_CONFIG_FIELDSETS = {
+    'General Options': ('SITE_NAME', 'SITE_DESCRIPTION'),
+    'Theme Options': ('THEME', 'THEME_TEMPLATE_DIR', 'THEME_ASSETS_DIR'),
+}
 from .target import *

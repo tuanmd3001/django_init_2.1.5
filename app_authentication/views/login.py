@@ -1,11 +1,11 @@
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.core.cache import cache
-from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from app_authentication.config import *
 from app_authentication.forms import LoginForm
 from app_authentication.routines import login_user
+from main.helpers.shortcuts import render, redirect
 from main.views import BaseView
 
 
@@ -37,6 +37,6 @@ class LoginView(BaseView):
                               USER_SESSION_CACHE_TIME)
 
                     return redirect(url_next)
-            return render(self.request, 'app_authentication/login.html', context)
+            return render(self.request, 'site/login.html', context)
         else:
             return redirect(reverse('app_home'))
