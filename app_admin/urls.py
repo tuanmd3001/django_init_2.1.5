@@ -1,0 +1,9 @@
+# -*- coding: utf-8 -*-
+from django.urls import path
+
+# New report
+from app_admin.views import index
+
+urlpatterns = [
+    path('', index.Index.as_view(), name='admin_index')
+]

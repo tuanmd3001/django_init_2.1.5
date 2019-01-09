@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
+from django.contrib.auth.models import AbstractUser
 from django.db import models
-# from main.models import *
 from django.core.validators import RegexValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
+from main.models import BaseModel
 
-class AppUsers(models.Model):
+class User(AbstractUser):
     STATUS_SUSPENDED = 0
     STATUS_ACTIVATED = 1
 
-    id = models.AutoField(primary_key=True)
-    username = models.CharField(max_length=30, unique=True)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     birthday = models.DateField()
@@ -21,6 +22,3 @@ class AppUsers(models.Model):
     status = models.BooleanField(default=STATUS_ACTIVATED)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'app_users'

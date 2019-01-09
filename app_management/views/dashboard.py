@@ -4,4 +4,4 @@ from app_management.views.base import ManagementBaseView
 
 class DashBoard(ManagementBaseView):
     def render_to_response(self, context, **response_kwargs):
-        return render(self.request, 'dashboard.html', context)
+        return render(self.request, 'app_management/dashboard.html', context)

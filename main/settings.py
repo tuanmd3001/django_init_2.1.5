@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'app_authentication',
     'app_management',
     'app_client',
+    'app_admin',
 ]
 
 MIDDLEWARE = [
@@ -106,6 +107,7 @@ USE_TZ = True
 ROOT_URLCONF = 'main.urls'
 STATIC_URL = '/static/'
 LOGIN_URL = '/login/'
+AUTH_USER_MODEL = 'app_authentication.User'
 
 
 LOGIN_MULTI_LOCATION = False
