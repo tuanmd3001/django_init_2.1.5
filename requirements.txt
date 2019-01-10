@@ -5,3 +5,5 @@ mysqlclient==1.3.13
 pytz==2018.7
 redis==3.0.1
 six==1.12.0
+six==1.12.0
+django-constance=2.3.1

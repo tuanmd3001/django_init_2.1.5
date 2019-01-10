@@ -5,7 +5,7 @@ from django.urls import reverse
 from app_authentication.config import *
 from app_authentication.forms import LoginForm
 from app_authentication.routines import login_user
-from main.helpers.shortcuts import render, redirect
+from main.helpers.shortcuts import template_render, template_redirect
 from main.views import BaseView
 
 
@@ -36,7 +36,7 @@ class LoginView(BaseView):
                     cache.set(USER_SESSION_CACHE_KEY % user.id, self.request.session.session_key,
                               USER_SESSION_CACHE_TIME)
 
-                    return redirect(url_next)
-            return render(self.request, 'site/login.html', context)
+                    return template_redirect(url_next)
+            return template_render(self.request, 'site/login.html', context)
         else:
-            return redirect(reverse('app_home'))
+            return template_redirect(reverse('app_blank'))

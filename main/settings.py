@@ -27,6 +27,12 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'constance',
+    'app_themes',
+    'app_authentication',
+    'app_management',
+    'app_client',
+    'app_admin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -34,12 +40,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_bootstrap_breadcrumbs',
-    'constance',
-    'app_themes',
-    'app_authentication',
-    'app_management',
-    'app_client',
-    'app_admin',
 ]
 
 MIDDLEWARE = [

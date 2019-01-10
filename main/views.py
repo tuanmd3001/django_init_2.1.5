@@ -1,18 +1,16 @@
 import importlib.util
 import inspect
+import os
 
+from constance import config
+from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME, logout
 from django.contrib.auth.views import redirect_to_login
+from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import resolve_url
 from django.views.generic import TemplateView
-from django.conf import settings
-from django.core.cache import cache
 from app_authentication.config import USER_SESSION_CACHE_KEY
-from constance import config
-import os
-
-from main.settings import BASE_DIR
 
 
 class BaseView(TemplateView):
