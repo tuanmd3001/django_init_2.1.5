@@ -19,22 +19,28 @@ from django.urls import path, include
 
 # from django.conf import settings
 # from django.conf.urls.static import static
+import app_client
 from main import settings
 
 urlpatterns = [
     path('admin_base/', admin.site.urls),
+    path('', include('app_authentication.urls')),
+    path('config/', include('app_management.urls')),
+    path('system_config/', include('app_management.urls')),
+    path('admin/', include('app_admin.urls')),
+    path('', app_client.site.urls),
 ]
 # urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 
-for app in settings.INSTALLED_APPS:
-    try:
-        mod = import_module('%s.urls' % app)
-        # possibly cleanup the after the imported module?
-        #  might fuss up the `include(...)` or leave a polluted namespace
-    except:
-        # cleanup after module import if fails,
-        #  maybe you can let the `include(...)` report failures
-        pass
-    else:
-        urlpatterns.append(path('', include('%s.urls' % app)))
+# for app in settings.INSTALLED_APPS:
+#     try:
+#         mod = import_module('%s.urls' % app)
+#         # possibly cleanup the after the imported module?
+#         #  might fuss up the `include(...)` or leave a polluted namespace
+#     except:
+#         # cleanup after module import if fails,
+#         #  maybe you can let the `include(...)` report failures
+#         pass
+#     else:
+#         urlpatterns.append(path('', include('%s.urls' % app)))
