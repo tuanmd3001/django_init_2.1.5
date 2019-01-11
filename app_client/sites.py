@@ -2,19 +2,20 @@ from _weakrefset import WeakSet
 from functools import update_wrapper
 
 from django.apps import apps
-from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.contrib.auth import REDIRECT_FIELD_NAME, logout
+from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.base import ModelBase
 from django.http import HttpResponseRedirect, Http404
 from django.template.response import TemplateResponse
-from django.urls import reverse, NoReverseMatch, re_path
+from django.urls import reverse, re_path
 from django.utils.functional import LazyObject
 from django.utils.module_loading import import_string
 from django.utils.text import capfirst
 from django.utils.translation import gettext as _, gettext_lazy
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
-from django.views.i18n import JavaScriptCatalog
+
 from app_client.options import ModelClient
 
 all_sites = WeakSet()
@@ -43,13 +44,8 @@ class AppClientSite:
 
     _empty_value_display = '-'
 
-    login_form = None
     index_template = None
     app_index_template = None
-    login_template = None
-    logout_template = None
-    password_change_template = None
-    password_change_done_template = None
 
     def __init__(self, name='client'):
         self._registry = {}
@@ -65,7 +61,6 @@ class AppClientSite:
                 raise ImproperlyConfigured(
                     'The model %s is abstract, so it cannot be registered with client.' % model.__name__
                 )
-
             if model in self._registry:
                 raise AlreadyRegistered('The model %s is already registered' % model.__name__)
 
@@ -75,9 +70,6 @@ class AppClientSite:
                 # If we got **options then dynamically construct a subclass of
                 # client_class with those **options.
                 if options:
-                    # For reasons I don't quite understand, without a __module__
-                    # the created class appears to "live" in the wrong place,
-                    # which causes issues later on.
                     options['__module__'] = __name__
                     client_class = type("%sClient" % model.__name__, (client_class,), options)
 
@@ -85,11 +77,6 @@ class AppClientSite:
                 self._registry[model] = client_class(model, self)
 
     def unregister(self, model_or_iterable):
-        """
-        Unregister the given model(s).
-
-        If a model isn't already registered, raise NotRegistered.
-        """
         if isinstance(model_or_iterable, ModelBase):
             model_or_iterable = [model_or_iterable]
         for model in model_or_iterable:
@@ -98,62 +85,59 @@ class AppClientSite:
             del self._registry[model]
 
     def is_registered(self, model):
-        """
-        Check if a model class is registered with this `ClientSite`.
-        """
         return model in self._registry
 
-    @property
-    def empty_value_display(self):
-        return self._empty_value_display
-
-    @empty_value_display.setter
-    def empty_value_display(self, empty_value_display):
-        self._empty_value_display = empty_value_display
-
     def has_permission(self, request):
-        """
-        Return True if the given HttpRequest has permission to view
-        *at least one* page in the client site.
-        """
         return request.user.is_active and request.user.is_staff
 
     def client_view(self, view, cacheable=False):
-        """
-        Decorator to create an client view attached to this ``ClientSite``. This
-        wraps the view and provides permission checking by calling
-        ``self.has_permission``.
+        from django.conf import settings
+        def go_to_login(request):
+            if request.path == reverse('logout', current_app=self.name):
+                index_path = reverse('client:index', current_app=self.name)
+                return HttpResponseRedirect(index_path)
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(
+                request.get_full_path(),
+                reverse('login' or settings.LOGIN_URL, current_app=self.name),
+                REDIRECT_FIELD_NAME
+            )
 
-        You'll want to use this from within ``ClientSite.get_urls()``:
-
-            class MyClientSite(ClientSite):
-
-                def get_urls(self):
-                    from django.urls import path
-
-                    urls = super().get_urls()
-                    urls += [
-                        path('my_view/', self.client_view(some_view))
-                    ]
-                    return urls
-
-        By default, client_views are marked non-cacheable using the
-        ``never_cache`` decorator. If the view can be safely cached, set
-        cacheable=True.
-        """
+        def validate_login_session(request):
+            from app_authentication.config import USER_SESSION_CACHE_KEY
+            if request.user and str(request.user) != 'AnonymousUser':
+                session_key = cache.get(USER_SESSION_CACHE_KEY % request.user.id, request.session.session_key)
+                if session_key != request.session.session_key:
+                    logout(request)
+                    return False
+            return True
 
         def inner(request, *args, **kwargs):
-            if not self.has_permission(request):
-                if request.path == reverse('admin:logout', current_app=self.name):
-                    index_path = reverse('admin:index', current_app=self.name)
-                    return HttpResponseRedirect(index_path)
-                # Inner import to prevent django.contrib.admin (app) from
-                # importing django.contrib.auth.models.User (unrelated model).
-                from django.contrib.auth.views import redirect_to_login
-                return redirect_to_login(
-                    request.get_full_path(),
-                    reverse('admin:login', current_app=self.name)
-                )
+            from main.views import BaseView
+            if hasattr(view, 'view_class') and issubclass(view.view_class, BaseView):
+                view_class = view.view_class
+                if view_class.login_required or view_class.admin_required or view_class.superuser_required:
+                    user = request.user
+                    if user is None or not user.is_authenticated or not user.is_active or (
+                                    request.user.is_active and not settings.LOGIN_MULTI_LOCATION and not validate_login_session(request)):
+                        return go_to_login(request)
+                    if view_class.superuser_required and not request.user.is_superuser:
+                        return view.go_to_login()
+                    if view_class.admin_required and not request.user.is_admin:
+                        return go_to_login(request)
+
+                app_list = self.get_app_list(request)
+                view_class.more_context = {
+                    **self.each_context(request),
+                    'title': self.index_title,
+                    'app_list': app_list,
+                    'current_app': self.name
+                }
+
+            else:
+                if not self.has_permission(request):
+                    return go_to_login(request)
+
             return view(request, *args, **kwargs)
 
         if not cacheable:
@@ -178,22 +162,21 @@ class AppClientSite:
             return update_wrapper(wrapper, view)
 
         # Client-site-wide views.
+        from app_client.views import Index
         urlpatterns = [
-            path('', wrap(self.index), name='index'),
+            path('', wrap(Index.as_view()), name='index'),
         ]
 
         # Add in each model's views, and create a list of valid URLS for the
         # app_index
         valid_app_labels = []
         for model, model_client in self._registry.items():
-            urlpatterns += [
-                path('%s/' % model._meta.app_url_prefix, include(model_client.urls)),
-            ]
-            if model._meta.app_label not in valid_app_labels:
-                valid_app_labels.append(model._meta.app_label)
-
-        # If there were ModelAdmins registered, we should have a list of app
-        # labels for which we need to allow access to the app_index view,
+            if model_client.urls:
+                urlpatterns += [
+                    path('%s/' % model._meta.app_url_prefix, include(model_client.urls)),
+                ]
+                if model._meta.app_label not in valid_app_labels:
+                    valid_app_labels.append(model._meta.app_label)
         if valid_app_labels:
             regex = r'^(?P<app_label>' + '|'.join(valid_app_labels) + ')/$'
             urlpatterns += [
@@ -219,10 +202,8 @@ class AppClientSite:
             'site_title': self.site_title,
             'site_header': self.site_header,
             'site_url': site_url,
-            'has_permission': self.has_permission(request),
             'available_apps': self.get_app_list(request),
         }
-
 
     def _build_app_dict(self, request, label=None):
         """
@@ -306,25 +287,6 @@ class AppClientSite:
 
         return app_list
 
-    @never_cache
-    def index(self, request, extra_context=None):
-        """
-        Display the main client index page, which lists all of the installed
-        apps that have been registered in this site.
-        """
-        app_list = self.get_app_list(request)
-
-        context = {
-            **self.each_context(request),
-            'title': self.index_title,
-            'app_list': app_list,
-            **(extra_context or {}),
-        }
-
-        request.current_app = self.name
-
-        return TemplateResponse(request, self.index_template or 'app_client/index.html', context)
-
     def app_index(self, request, app_label, extra_context=None):
         app_dict = self._build_app_dict(request, app_label)
         if not app_dict:
@@ -334,7 +296,7 @@ class AppClientSite:
         app_name = apps.get_app_config(app_label).verbose_name
         context = {
             **self.each_context(request),
-            'title': _('%(app)s administration') % {'app': app_name},
+            'title': _('%(app)s client') % {'app': app_name},
             'app_list': [app_dict],
             'app_label': app_label,
             **(extra_context or {}),
@@ -343,8 +305,8 @@ class AppClientSite:
         request.current_app = self.name
 
         return TemplateResponse(request, self.app_index_template or [
-            'client/%s/app_index.html' % app_label,
-            'client/app_index.html'
+            'app_modules/%s/templates/%s/index.html' % app_label,
+            'app_client/index.html'
         ], context)
 
 

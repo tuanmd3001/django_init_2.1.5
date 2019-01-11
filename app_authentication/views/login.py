@@ -15,7 +15,7 @@ class LoginView(BaseView):
         login_form = LoginForm()
         context['login_form'] = login_form
         context['redirect_field_name'] = REDIRECT_FIELD_NAME
-        context['redirect_field_value'] = self.request.GET.get(REDIRECT_FIELD_NAME, 'app_home')
+        context['redirect_field_value'] = self.request.GET.get(REDIRECT_FIELD_NAME, 'client:index')
         return context
 
     def render_to_response(self, context, **response_kwargs):
@@ -27,9 +27,10 @@ class LoginView(BaseView):
                     user = login_form.cleaned_data['user']
                     self.request.session['staff_id'] = user.id
 
-                    url_next = self.request.POST.get(REDIRECT_FIELD_NAME, 'app_home')
-                    if user.last_login == user.date_joined:
-                        url_next = reverse('staff_change_password')
+                    url_next = self.request.POST.get(REDIRECT_FIELD_NAME, 'client:index')
+
+                    # if user.last_login == user.date_joined:
+                    #     url_next = reverse('staff_change_password')
 
                     login_user(self.request, user)
 
@@ -39,4 +40,4 @@ class LoginView(BaseView):
                     return template_redirect(url_next)
             return template_render(self.request, 'site/login.html', context)
         else:
-            return template_redirect(reverse('app_blank'))
+            return template_redirect(reverse('client:index'))

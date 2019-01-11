@@ -25,9 +25,8 @@ from main import settings
 urlpatterns = [
     path('admin_base/', admin.site.urls),
     path('', include('app_authentication.urls')),
-    path('config/', include('app_management.urls')),
-    path('system_config/', include('app_management.urls')),
-    path('admin/', include('app_admin.urls')),
+    # path('system_config/', include('app_management.urls')),
+    # path('admin/', include('app_admin.urls')),
     path('', app_client.site.urls),
 ]
 # urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -1,23 +1,20 @@
-from django.contrib import admin
-from django.urls import path
-import app_client
 from django.apps import apps
 from django.utils.translation import ugettext_lazy as _
+import app_client
+from app_client.options import ModelClient
 from app_modules.users_manage.views import blank
 
-class UsersManageClient(admin.ModelAdmin):
-    def get_urls(self):
-        info = self.model._meta.app_label, self.model._meta.module_name
-        return [
-            path('',
-                self.admin_site.client_view(blank.Blank.as_view()),
-                name='%s_%s_index' % info),
-        ]
+
+class UsersManageClient(ModelClient):
+    urlpatterns = [
+        ('', blank.Blank.as_view(), 'users_index', 'Danh sách người dùng')
+    ]
+
 
 class Config(object):
     class Meta(object):
         app_label = 'users_manage'
-        app_url_prefix = 'u'
+        app_url_prefix = 'users'
         object_name = 'UsersManage'
         model_name = module_name = 'config'
         verbose_name_plural = _('config')
@@ -36,10 +33,7 @@ class Config(object):
         def label_lower(self):
             return '%s.%s' % (self.app_label, self.model_name)
 
-        @property
-        def urls(self):
-            return 'app_modules.users_manage.urls'
-
     _meta = Meta()
+
 
 app_client.site.register([Config], UsersManageClient)
