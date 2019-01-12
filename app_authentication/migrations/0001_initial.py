@@ -18,6 +18,8 @@ class Migration(migrations.Migration):
 
     def create_superuser(apps, schema_editor):
         username = 'admin'
+        first_name = 'first'
+        last_name = 'last'
         password = 'admin'
         email = 'admin@teko.vn'
         now = datetime.now()
@@ -26,12 +28,12 @@ class Migration(migrations.Migration):
         superuser.is_active = True
         superuser.is_superuser = True
         superuser.is_staff = True
+        superuser.is_admin = True
         superuser.username = username
+        superuser.first_name = first_name
+        superuser.last_name = last_name
         superuser.email = email
         superuser.set_password(password)
-        superuser.last_login = now.strftime("%Y-%m-%d %H:%M:%S")
-        superuser.username = username
-        superuser.email = email
         superuser.birthday = now.strftime("%Y-%m-%d")
         superuser.save()
 
@@ -44,7 +46,8 @@ class Migration(migrations.Migration):
                 ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
                 ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
                 ('username', models.CharField(error_messages={'unique': 'A user with that username already exists.'}, help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.', max_length=150, unique=True, validators=[django.contrib.auth.validators.UnicodeUsernameValidator()], verbose_name='username')),
-                ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into this admin site.', verbose_name='staff status')),
+                ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into this client site.', verbose_name='user client access')),
+                ('is_admin', models.BooleanField(default=False, help_text='Designates whether the user can log into this admin site.', verbose_name='user admin access')),
                 ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
                 ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
                 ('first_name', models.CharField(max_length=255)),
